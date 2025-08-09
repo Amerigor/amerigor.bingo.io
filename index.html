@@ -12,8 +12,7 @@
     --cell-size:120px;
     --font-size:20px;
     --font-weight:800;
-    --border:3px;               /* NEW: border thickness */
-    --x-thickness:3px;          /* thickness of the X lines */
+    --border:3px; /* controls BOTH tile border and X thickness */
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -51,13 +50,14 @@
     display:flex;align-items:center;justify-content:center;
     text-align:center;padding:12px;
     border-radius:16px;position:relative;overflow:hidden;cursor:pointer;
-    border: var(--border) solid transparent;                   /* uses slider */
+    border: var(--border) solid transparent;
     border-image:linear-gradient(135deg,var(--blue),var(--red)) 1;
+    transition: transform .12s ease;
   }
   .cell .glow{position:absolute;inset:-2px;border-radius:inherit;background:
     radial-gradient(120% 150% at 20% -10%, rgba(90,211,255,.18), transparent 60%),
     radial-gradient(120% 150% at 120% 120%, rgba(255,77,109,.16), transparent 60%);
-    opacity:.0;filter:saturate(140%);transition:opacity .2s ease}
+    opacity:.0;filter:saturate(140%);transition:opacity .2s ease, filter .2s ease}
   .cell:hover .glow,.cell.crossed .glow{opacity:.9}
 
   .cell .txt{
@@ -68,32 +68,41 @@
     text-shadow:0 0 1px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.35);
     line-height:1.2;
     word-break:break-word;
+    z-index:1;
   }
 
-  /* NEW: Cross effect as an X (no strikethrough) */
+  /* X overlay uses same thickness as border slider */
   .cell.crossed::before,
   .cell.crossed::after{
     content:"";
     position:absolute;
     left:10%; right:10%;
     top:50%;
-    height:var(--x-thickness);
+    height:var(--border);
     background:linear-gradient(90deg,var(--blue),var(--red));
     box-shadow:0 0 10px rgba(255,77,109,.45),0 0 12px rgba(90,211,255,.35);
     transform-origin:center center;
+    z-index:2;
   }
   .cell.crossed::before{ transform:rotate(45deg); }
   .cell.crossed::after { transform:rotate(-45deg); }
 
+  /* BIGGER, PULSING BINGO EFFECT */
   .cell.bingo-row,.cell.bingo-col{
-    outline:2px solid transparent;
-    box-shadow:0 0 18px rgba(90,211,255,.45), 0 0 26px rgba(255,77,109,.35)
+    box-shadow:
+      0 0 30px rgba(90,211,255,.85),
+      0 0 60px rgba(255,77,109,.75);
+    animation: bingoPulse .9s ease-in-out infinite alternate;
   }
-  .cell.bingo-row .glow,.cell.bingo-col .glow{opacity:1}
-  .cell.bingo-row{animation:blinkBlue 1.2s ease-in-out infinite alternate}
-  .cell.bingo-col{animation:blinkRed 1.2s ease-in-out infinite alternate}
-  @keyframes blinkBlue{from{filter:none} to{filter:drop-shadow(0 0 10px var(--blue))}}
-  @keyframes blinkRed{from{filter:none} to{filter:drop-shadow(0 0 10px var(--red))}}
+  .cell.bingo-row .glow,.cell.bingo-col .glow{
+    opacity:1; filter:saturate(200%) brightness(1.25);
+  }
+  .cell.bingo-row .txt,.cell.bingo-col .txt{ color:#fff }
+
+  @keyframes bingoPulse{
+    from { transform: scale(1.00) }
+    to   { transform: scale(1.04) }
+  }
 
   .obs-mode .layout{grid-template-columns:1fr}
 </style>
@@ -105,7 +114,7 @@
     <div class="row">
       <label>Font Size <input type="range" id="fontSize" min="12" max="60"></label>
       <label>Cell Size <input type="range" id="cellSize" min="80" max="240"></label>
-      <label>Border <input type="range" id="borderSize" min="1" max="10"></label> <!-- NEW -->
+      <label>Border <input type="range" id="borderSize" min="1" max="12"></label>
       <label><input type="checkbox" id="boldToggle" checked> Bold</label>
     </div>
   </header>
@@ -159,13 +168,15 @@ function renderGrid(items){
     grid.appendChild(cell);
   });
   updateBingos();
+  if(status) status.textContent = `Filled ${items.filter(Boolean).length}/25 cells.`;
 }
 function updateBingos(){
   $$('.cell').forEach(c=>c.classList.remove('bingo-row','bingo-col'));
   const m=crossedMatrix();
-  for(let r=0;r<5;r++)if([0,1,2,3,4].every(c=>m[r][c]))for(let c=0;c<5;c++)getCell(r,c)?.classList.add('bingo-row');
-  for(let c=0;c<5;c++)if([0,1,2,3,4].every(r=>m[r][c]))for(let r=0;r<5;r++)getCell(r,c)?.classList.add('bingo-col');
+  for(let r=0;r<5;r++) if([0,1,2,3,4].every(c=>m[r][c])) for(let c=0;c<5;c++) getCell(r,c)?.classList.add('bingo-row');
+  for(let c=0;c<5;c++) if([0,1,2,3,4].every(r=>m[r][c])) for(let r=0;r<5;r++) getCell(r,c)?.classList.add('bingo-col');
 }
+
 function fillFromTextarea(){
   try{
     const lines=(items?.value||'').split(/\r?\n/);
@@ -205,7 +216,7 @@ btnAgain?.addEventListener('click',()=>{if(!items.value.trim())return;fillFromTe
 btnClear?.addEventListener('click',()=>{items.value='';renderGrid(Array(25).fill(''));publishState()});
 btnClearCrosses?.addEventListener('click',()=>{$$('.cell.crossed').forEach(c=>c.classList.remove('crossed'));updateBingos();publishState()});
 
-/* SETTINGS (now includes border thickness) */
+/* SETTINGS (border also drives X thickness) */
 function getSettings(){return{
   font:fontSize.value,
   cell:cellSize.value,
@@ -217,14 +228,14 @@ function applySettings(s){
   document.documentElement.style.setProperty('--font-size',s.font+'px');
   document.documentElement.style.setProperty('--cell-size',s.cell+'px');
   document.documentElement.style.setProperty('--font-weight',s.bold?'800':'400');
-  document.documentElement.style.setProperty('--border',s.border+'px');    // NEW
+  document.documentElement.style.setProperty('--border',s.border+'px'); // drives border + X
   fontSize.value=s.font;cellSize.value=s.cell;boldToggle.checked=s.bold;borderSize.value=s.border;
 }
 [fontSize,cellSize,boldToggle,borderSize].forEach(el=>el.addEventListener('input',()=>{
   document.documentElement.style.setProperty('--font-size',fontSize.value+'px');
   document.documentElement.style.setProperty('--cell-size',cellSize.value+'px');
   document.documentElement.style.setProperty('--font-weight',boldToggle.checked?'800':'400');
-  document.documentElement.style.setProperty('--border',borderSize.value+'px');  // NEW
+  document.documentElement.style.setProperty('--border',borderSize.value+'px');
   publishState();
 }));
 
