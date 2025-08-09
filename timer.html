@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Countdown Timer</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --fg: #e8f0ff;
+      --accent: #5cc8ff;
+      --warn: #ff4444;
+      --fontSize: 160; /* px */
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      background: var(--bg);
+      color: var(--fg);
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .timer {
+      position: relative;
+      display: grid;
+      place-items: center;
+    }
+
+    /* "Time is up" overlay */
+    #timeUp {
+      position: absolute; inset: 0;
+      display: grid; place-items: center;
+      background: rgba(0,0,0,0.6);
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s ease;
+    }
+    #timeUp .msg {
+      font-size: clamp(42px, calc(var(--fontSize) * 0.5px), 180px);
+      font-weight: 900;
+      letter-spacing: .05em;
+      color: #fff;
+      text-shadow: 0 0 18px rgba(255,255,255,.6), 0 0 36px rgba(92,200,255,.4);
+      animation: boom 1.2s ease both, glow 1.8s ease-in-out infinite;
+      text-transform: uppercase;
+    }
+    @keyframes boom { 0%{ transform: scale(.6); opacity: 0;} 60%{ transform: scale(1.2); opacity: 1;} 100%{ transform: scale(1);} }
+    @keyframes glow { 0%,100%{ filter: drop-shadow(0 0 0 rgba(255,255,255,0)); } 50%{ filter: drop-shadow(0 0 24px rgba(92,200,255,.8)); } }
+
+    .digits {
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 4px;
+      font-weight: 800;
+      line-height: 1;
+      user-select: none;
+      display: inline-flex; align-items: center; gap: .1em;
+    }
+    .value {
+      font-size: clamp(42px, calc(var(--fontSize) * 1px), 260px);
+      background: linear-gradient(180deg, #fff, #cde8ff 40%, #9ad2ff 70%, #72b7ff);
+      -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+      text-shadow: 0 4px 18px rgba(0,0,0,.35);
+      display: inline-block;
+    }
+    /* Make separators the same style/size */
+    .value.colon { width: .5em; text-align: center; }
+
+    /* Critical state effect */
+    .timer.critical .value {
+      background: linear-gradient(180deg, #fff, #ffd4d4 40%, #ff9b9b 70%, #ff6868);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse { 0%,100%{ transform: scale(1);} 50%{ transform: scale(1.02);} }
+
+    .controls, .settings { display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap; justify-content: center; }
+
+    .settings .group { display: grid; gap: 8px; grid-template-columns: repeat(6, minmax(70px, 1fr)); align-items: center; }
+    .settings .group .block { display: grid; gap: 6px; grid-template-columns: 1fr; }
+    .settings label { font-size: 12px; opacity: .8; }
+
+    input, button {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #222;
+      background: #111;
+      color: var(--fg);
+      outline: none;
+    }
+    input[type="number"] { width: 100%; }
+    input[type="range"] { width: 100%; }
+    button { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="timer" id="timer">
+    <div class="digits" aria-live="polite" aria-atomic="true">
+      <span class="value" id="hh">00</span>
+      <span class="value colon">:</span>
+      <span class="value" id="mm">00</span>
+      <span class="value colon">:</span>
+      <span class="value" id="ss">00</span>
+    </div>
+    <div id="timeUp"><div class="msg">Time is up</div></div>
+  </div>
+
+  <div class="controls">
+    <button id="play">▶ Play</button>
+    <button id="pause">⏸ Stop</button>
+    <button id="reset">⟲ Reset</button>
+  </div>
+
+  <div class="settings">
+    <div class="group">
+      <div class="block">
+        <label for="inHours">Hours</label>
+        <input type="number" id="inHours" min="0" value="0" />
+      </div>
+      <div class="block">
+        <label for="inMinutes">Minutes</label>
+        <input type="number" id="inMinutes" min="0" max="59" value="5" />
+      </div>
+      <div class="block">
+        <label for="inSeconds">Seconds</label>
+        <input type="number" id="inSeconds" min="0" max="59" value="0" />
+      </div>
+      <div class="block">
+        <label for="criticalMin">Critical (min)</label>
+        <input type="number" id="criticalMin" min="0" value="1" />
+      </div>
+      <div class="block">
+        <label for="criticalSec">Critical (sec)</label>
+        <input type="number" id="criticalSec" min="0" max="59" value="0" />
+      </div>
+      <div class="block">
+        <label for="fontSlider">Font size</label>
+        <input type="range" id="fontSlider" min="60" max="260" step="2" value="160" />
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---- State ----
+    let totalSeconds = 5 * 60;
+    let remaining = totalSeconds;
+    let critical = 60;
+    let ticking = false;
+    let rafId = null;
+    let lastTick = null;
+
+    // ---- Elements ----
+    const elTimer = document.getElementById('timer');
+    const elH = document.getElementById('hh');
+    const elM = document.getElementById('mm');
+    const elS = document.getElementById('ss');
+    const btnPlay = document.getElementById('play');
+    const btnPause = document.getElementById('pause');
+    const btnReset = document.getElementById('reset');
+    const inH = document.getElementById('inHours');
+    const inM = document.getElementById('inMinutes');
+    const inS = document.getElementById('inSeconds');
+    const cMin = document.getElementById('criticalMin');
+    const cSec = document.getElementById('criticalSec');
+    const fontSlider = document.getElementById('fontSlider');
+    const timeUp = document.getElementById('timeUp');
+
+    // ---- Helpers ----
+    function pad(n){ return n.toString().padStart(2,'0'); }
+
+    function render(){
+      const h = Math.floor(remaining / 3600);
+      const m = Math.floor((remaining % 3600) / 60);
+      const s = Math.floor(remaining % 60);
+      elH.textContent = pad(h);
+      elM.textContent = pad(m);
+      elS.textContent = pad(s);
+      elTimer.classList.toggle('critical', remaining > 0 && remaining <= critical);
+      if(remaining <= 0){ showTimeUp(); }
+      else { hideTimeUp(); }
+    }
+
+    function computeTotalFromInputs(){
+      const h = Math.max(0, parseInt(inH.value||0,10));
+      const m = Math.max(0, Math.min(59, parseInt(inM.value||0,10)));
+      const s = Math.max(0, Math.min(59, parseInt(inS.value||0,10)));
+      let tot = (h*3600) + (m*60) + s;
+      if(tot <= 0) tot = 1; // avoid zero-length timer
+      return tot;
+    }
+
+    function applyCriticalFromInputs(){
+      const cm = Math.max(0, parseInt(cMin.value||0,10));
+      const cs = Math.max(0, Math.min(59, parseInt(cSec.value||0,10)));
+      critical = (cm*60) + cs;
+      render();
+    }
+
+    function start(){
+      if(ticking) return;
+      if(remaining <= 0) remaining = totalSeconds; // restart after finish
+      ticking = true;
+      lastTick = performance.now();
+      tick();
+    }
+
+    function pause(){
+      ticking = false;
+      if(rafId) cancelAnimationFrame(rafId);
+    }
+
+    function reset(){
+      pause();
+      totalSeconds = computeTotalFromInputs(); // update set time on reset
+      remaining = totalSeconds;
+      render();
+    }
+
+    function tick(){
+      if(!ticking) return;
+      const now = performance.now();
+      const delta = (now - lastTick) / 1000;
+      lastTick = now;
+      remaining -= delta;
+      if(remaining <= 0){
+        remaining = 0;
+        ticking = false;
+        render();
+        return;
+      }
+      render();
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function showTimeUp(){ timeUp.style.opacity = 1; }
+    function hideTimeUp(){ timeUp.style.opacity = 0; }
+
+    // ---- Events ----
+    btnPlay.addEventListener('click', start);
+    btnPause.addEventListener('click', pause);
+    btnReset.addEventListener('click', reset);
+
+    // Live update of critical time without button
+    cMin.addEventListener('input', applyCriticalFromInputs);
+    cSec.addEventListener('input', applyCriticalFromInputs);
+
+    // Font size
+    fontSlider.addEventListener('input', (e)=>{
+      document.documentElement.style.setProperty('--fontSize', e.target.value);
+    });
+
+    // Init
+    document.documentElement.style.setProperty('--fontSize', fontSlider.value);
+    applyCriticalFromInputs();
+    render();
+  </script>
+</body>
+</html>
