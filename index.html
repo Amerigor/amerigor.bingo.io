@@ -1,114 +1,114 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>5×5 Grid Shuffler</title>
-  <style>
-    :root{
-      --ink:#e6e8ef;--muted:#9aa3b2;
-      --blue:#5ad3ff;--red:#ff4d6d;
-      --radius:18px;--gap:12px;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;background:#000;color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
-    .wrap{max-width:1200px;margin:auto;padding:24px}
-    header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:18px}
-    header h1{font-weight:800;font-size:clamp(20px, 2.6vw, 34px);letter-spacing:0.2px;margin:0}
-    header .sub{color:var(--muted);font-size:0.95rem}
-    .layout{display:grid;grid-template-columns:380px 1fr;gap:20px}
-    @media (max-width:980px){.layout{grid-template-columns:1fr}}
-    .card{background:transparent;border:1px solid transparent;border-radius:var(--radius);padding:16px;box-shadow:none}
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>5×5 Grid Shuffler</title>
+<style>
+  :root{
+    --ink:#e6e8ef;--muted:#9aa3b2;
+    --blue:#5ad3ff;--red:#ff4d6d;
+    --radius:18px;--gap:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:#000;color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+  .wrap{max-width:1200px;margin:auto;padding:24px}
+  header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:18px}
+  header h1{font-weight:800;font-size:clamp(20px, 2.6vw, 34px);letter-spacing:0.2px;margin:0}
+  header .sub{color:var(--muted);font-size:0.95rem}
+  .layout{display:grid;grid-template-columns:380px 1fr;gap:20px}
+  @media (max-width:980px){.layout{grid-template-columns:1fr}}
+  .card{background:transparent;border:1px solid transparent;border-radius:var(--radius);padding:16px;box-shadow:none}
 
-    textarea{width:100%;height:280px;background:#0e1320;color:var(--ink);border:1px solid #273149;outline:none;border-radius:12px;padding:12px;resize:vertical}
-    textarea::placeholder{color:#6b7280}
+  textarea{width:100%;height:280px;background:#0e1320;color:var(--ink);border:1px solid #273149;outline:none;border-radius:12px;padding:12px;resize:vertical}
+  textarea::placeholder{color:#6b7280}
 
-    .controls{display:grid;gap:10px;margin-top:12px}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    label{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:0.95rem}
-    input[type="text"],input[type="number"]{background:#0e1320;border:1px solid #273149;color:var(--ink);border-radius:10px;padding:8px 10px;min-width:0}
+  .controls{display:grid;gap:10px;margin-top:12px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  label{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:0.95rem}
+  input[type="text"],input[type="number"]{background:#0e1320;border:1px solid #273149;color:var(--ink);border-radius:10px;padding:8px 10px;min-width:0}
 
-    .btn{appearance:none;border:none;border-radius:14px;padding:10px 14px;cursor:pointer;font-weight:700}
-    .btn.primary{background:linear-gradient(90deg,var(--blue),var(--red));color:#0b0e14}
-    .btn.ghost{background:transparent;border:1px solid #2a3552;color:var(--ink)}
-    .btn:active{transform:translateY(1px)}
+  .btn{appearance:none;border:none;border-radius:14px;padding:10px 14px;cursor:pointer;font-weight:700}
+  .btn.primary{background:linear-gradient(90deg,var(--blue),var(--red));color:#0b0e14}
+  .btn.ghost{background:transparent;border:1px solid #2a3552;color:var(--ink)}
+  .btn:active{transform:translateY(1px)}
 
-    .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--gap);width:100%}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--gap);width:100%}
 
-    .cell{min-height:120px;display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;border-radius:16px;position:relative;overflow:hidden;cursor:pointer}
-    .cell{border:3px solid transparent;border-image:linear-gradient(135deg,var(--blue),var(--red)) 1}
-    .cell::after{content:"";position:absolute;inset:6px;border-radius:14px;border:1px solid rgba(255,255,255,.08);pointer-events:none}
-    .cell .glow{position:absolute;inset:-2px;border-radius:inherit;background:
-      radial-gradient(120% 150% at 20% -10%, rgba(90,211,255,.18), transparent 60%),
-      radial-gradient(120% 150% at 120% 120%, rgba(255,77,109,.16), transparent 60%);
-      opacity:.0;filter:saturate(140%);transition:opacity .2s ease}
-    .cell:hover .glow,.cell.crossed .glow{opacity:.9}
+  .cell{min-height:120px;display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;border-radius:16px;position:relative;overflow:hidden;cursor:pointer}
+  .cell{border:3px solid transparent;border-image:linear-gradient(135deg,var(--blue),var(--red)) 1}
+  .cell::after{content:"";position:absolute;inset:6px;border-radius:14px;border:1px solid rgba(255,255,255,.08);pointer-events:none}
+  .cell .glow{position:absolute;inset:-2px;border-radius:inherit;background:
+    radial-gradient(120% 150% at 20% -10%, rgba(90,211,255,.18), transparent 60%),
+    radial-gradient(120% 150% at 120% 120%, rgba(255,77,109,.16), transparent 60%);
+    opacity:.0;filter:saturate(140%);transition:opacity .2s ease}
+  .cell:hover .glow,.cell.crossed .glow{opacity:.9}
 
-    .cell .txt{position:relative;font-weight:800;letter-spacing:.2px;
-      text-shadow:0 0 1px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.35);
-      font-size:clamp(12px, 1.4vw, 22px); line-height:1.2; word-break:break-word}
-    .cell .idx{position:absolute;top:6px;left:8px;color:#8a93a6;font-size:12px}
+  .cell .txt{position:relative;font-weight:800;letter-spacing:.2px;
+    text-shadow:0 0 1px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.35);
+    font-size:clamp(12px, 1.4vw, 22px); line-height:1.2; word-break:break-word}
+  .cell .idx{position:absolute;top:6px;left:8px;color:#8a93a6;font-size:12px}
 
-    .cell.crossed .txt{ text-decoration: line-through; text-decoration-thickness: 3px; text-decoration-color: rgba(255,255,255,.9); opacity:.9 }
-    .cell.crossed::before{ content:""; position:absolute; left:8%; right:8%; top:50%; height:3px; background:linear-gradient(90deg,var(--blue),var(--red)); box-shadow:0 0 10px rgba(255,77,109,.45),0 0 12px rgba(90,211,255,.35); transform:translateY(-1px)}
+  .cell.crossed .txt{ text-decoration: line-through; text-decoration-thickness: 3px; text-decoration-color: rgba(255,255,255,.9); opacity:.9 }
+  .cell.crossed::before{ content:""; position:absolute; left:8%; right:8%; top:50%; height:3px; background:linear-gradient(90deg,var(--blue),var(--red)); box-shadow:0 0 10px rgba(255,77,109,.45),0 0 12px rgba(90,211,255,.35); transform:translateY(-1px)}
 
-    .cell.bingo-row,.cell.bingo-col{outline:2px solid transparent; box-shadow:0 0 18px rgba(90,211,255,.45), 0 0 26px rgba(255,77,109,.35)}
-    .cell.bingo-row .glow,.cell.bingo-col .glow{opacity:1}
-    .cell.bingo-row{animation:blinkBlue 1.2s ease-in-out infinite alternate}
-    .cell.bingo-col{animation:blinkRed 1.2s ease-in-out infinite alternate}
-    @keyframes blinkBlue{from{filter:none} to{filter:drop-shadow(0 0 10px var(--blue))}}
-    @keyframes blinkRed{from{filter:none} to{filter:drop-shadow(0 0 10px var(--red))}}
+  .cell.bingo-row,.cell.bingo-col{outline:2px solid transparent; box-shadow:0 0 18px rgba(90,211,255,.45), 0 0 26px rgba(255,77,109,.35)}
+  .cell.bingo-row .glow,.cell.bingo-col .glow{opacity:1}
+  .cell.bingo-row{animation:blinkBlue 1.2s ease-in-out infinite alternate}
+  .cell.bingo-col{animation:blinkRed 1.2s ease-in-out infinite alternate}
+  @keyframes blinkBlue{from{filter:none} to{filter:drop-shadow(0 0 10px var(--blue))}}
+  @keyframes blinkRed{from{filter:none} to{filter:drop-shadow(0 0 10px var(--red))}}
 
-    .footer{margin-top:10px;color:var(--muted);font-size:0.92rem}
-    .error{color:#ff8b8b}
-    .ok{color:#7bf1a8}
-    .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #2a3552;border-radius:999px;padding:6px 10px;color:var(--muted);font-size:0.9rem}
-    .sp{flex:1}
+  .footer{margin-top:10px;color:var(--muted);font-size:0.92rem}
+  .error{color:#ff8b8b}
+  .ok{color:#7bf1a8}
+  .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #2a3552;border-radius:999px;padding:6px 10px;color:var(--muted);font-size:0.9rem}
+  .sp{flex:1}
 
-    .obs-mode .layout{grid-template-columns:1fr}
-    .obs-mode section.card:first-of-type, .obs-mode header .badge, .obs-mode header .sub {display:none}
-    .obs-mode header h1{font-size:20px;opacity:.6}
-    .obs-mode .cell .txt{font-size:clamp(16px, 2.2vw, 36px)}
-    .obs-mode .cell .idx{display:none}
-  </style>
+  .obs-mode .layout{grid-template-columns:1fr}
+  .obs-mode section.card:first-of-type, .obs-mode header .badge, .obs-mode header .sub {display:none}
+  .obs-mode header h1{font-size:20px;opacity:.6}
+  .obs-mode .cell .txt{font-size:clamp(16px, 2.2vw, 36px)}
+  .obs-mode .cell .idx{display:none}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div>
-        <h1>5×5 Grid Shuffler</h1>
-        <div class="sub">Editor + live OBS view (add <code>?obs=1</code> to URL for display mode)</div>
-      </div>
-      <div class="badge" title="State syncs via BroadcastChannel + localStorage">Live Sync</div>
-    </header>
-
-    <div class="layout">
-      <section class="card">
-        <label for="items"><strong>List</strong> (one per line)</label>
-        <textarea id="items" placeholder="Enter at least 25 lines…"></textarea>
-
-        <div class="controls">
-          <div class="row">
-            <button id="btnFill" class="btn primary">Shuffle & Fill</button>
-            <button id="btnAgain" class="btn ghost">Shuffle Again</button>
-            <button id="btnClearCrosses" class="btn ghost">Clear Crosses</button>
-            <span class="sp"></span>
-            <button id="btnClear" class="btn ghost">Clear</button>
-          </div>
-          <div class="row">
-            <label><input type="checkbox" id="allowRepeats"> Allow repeats if fewer than 25 items</label>
-            <label>Seed <input id="seed" type="text" placeholder="optional" /></label>
-          </div>
-          <div class="footer" id="status"></div>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="grid" id="grid" aria-live="polite"></div>
-      </section>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>5×5 Grid Shuffler</h1>
+      <div class="sub">Editor + live OBS view (add <code>?obs=1</code> to URL for display mode)</div>
     </div>
+    <div class="badge" title="State syncs via BroadcastChannel + localStorage">Live Sync</div>
+  </header>
+
+  <div class="layout">
+    <section class="card">
+      <label for="items"><strong>List</strong> (one per line)</label>
+      <textarea id="items" placeholder="Enter at least 25 lines…"></textarea>
+
+      <div class="controls">
+        <div class="row">
+          <button id="btnFill" class="btn primary">Shuffle & Fill</button>
+          <button id="btnAgain" class="btn ghost">Shuffle Again</button>
+          <button id="btnClearCrosses" class="btn ghost">Clear Crosses</button>
+          <span class="sp"></span>
+          <button id="btnClear" class="btn ghost">Clear</button>
+        </div>
+        <div class="row">
+          <label><input type="checkbox" id="allowRepeats"> Allow repeats if fewer than 25 items</label>
+          <label>Seed <input id="seed" type="text" placeholder="optional" /></label>
+        </div>
+        <div class="footer" id="status"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="grid" id="grid" aria-live="polite"></div>
+    </section>
   </div>
+</div>
 
 <script>
 const $ = sel => document.querySelector(sel);
@@ -182,7 +182,7 @@ function updateBingos(){
 
 function fillFromTextarea(){
   try{
-    const lines = (ta?.value || '').split(/\\r?\\n/);
+    const lines = (ta?.value || '').split(/\r?\n/);
     const rnd = seedRNG((seedInput?.value || '').trim());
     const items = sample25(lines, !!(allowRepeats&&allowRepeats.checked), rnd);
     renderGrid(items);
@@ -211,7 +211,7 @@ $('#btnClearCrosses')?.addEventListener('click', ()=>{
 function currentState(){
   return {
     v:2,
-    items: ta ? ta.value : getTexts().join('\\n'),
+    items: ta ? ta.value : getTexts().join('\n'),
     allow: allowRepeats ? !!allowRepeats.checked : true,
     seed: seedInput ? seedInput.value : '',
     texts: getTexts(),
@@ -225,8 +225,12 @@ function publishState(reason){
   if (bc) try{ bc.postMessage({type:'state', reason, state}); }catch(_){}
 }
 function applyState(state){
-  const texts = state?.texts || [];
-  const items = texts.length ? texts : Array(25).fill('');
+  const items = state?.texts && state.texts.length
+    ? state.texts
+    : (typeof state?.items === 'string'
+        ? state.items.split(/\r?\n/)
+        : Array(25).fill(''));
+  
   renderGrid(items);
   if (state?.crossed && state.crossed.length === 25){
     $$('.cell').forEach((c, i)=>{ if(state.crossed[i]) c.classList.add('crossed'); });
@@ -272,7 +276,7 @@ window.addEventListener('storage', (e)=>{
           'Kilo','Lima','Mike','November','Oscar',
           'Papa','Quebec','Romeo','Sierra','Tango',
           'Uniform','Victor','Whiskey','X-ray','Yankee','Zulu'
-        ].join('\\n');
+        ].join('\n');
       }
     }
   }
