@@ -12,6 +12,8 @@
     --cell-size:120px;
     --font-size:20px;
     --font-weight:800;
+    --border:3px;               /* NEW: border thickness */
+    --x-thickness:3px;          /* thickness of the X lines */
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -27,7 +29,7 @@
   .controls{display:grid;gap:8px;margin-top:8px}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
   label{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:0.9rem}
-  input[type="range"]{width:100px}
+  input[type="range"]{width:120px}
   input[type="text"],input[type="number"]{background:#0e1320;border:1px solid #273149;color:var(--ink);border-radius:10px;padding:4px 8px;min-width:0}
 
   .btn{appearance:none;border:none;border-radius:14px;padding:8px 12px;cursor:pointer;font-weight:700}
@@ -49,7 +51,7 @@
     display:flex;align-items:center;justify-content:center;
     text-align:center;padding:12px;
     border-radius:16px;position:relative;overflow:hidden;cursor:pointer;
-    border:3px solid transparent;
+    border: var(--border) solid transparent;                   /* uses slider */
     border-image:linear-gradient(135deg,var(--blue),var(--red)) 1;
   }
   .cell .glow{position:absolute;inset:-2px;border-radius:inherit;background:
@@ -68,19 +70,20 @@
     word-break:break-word;
   }
 
-  .cell.crossed .txt{
-    text-decoration: line-through;
-    text-decoration-thickness: 3px;
-    text-decoration-color: rgba(255,255,255,.9);
-    opacity:.9;
-  }
-  .cell.crossed::before{
+  /* NEW: Cross effect as an X (no strikethrough) */
+  .cell.crossed::before,
+  .cell.crossed::after{
     content:"";
-    position:absolute; left:8%; right:8%; top:50%; height:3px;
+    position:absolute;
+    left:10%; right:10%;
+    top:50%;
+    height:var(--x-thickness);
     background:linear-gradient(90deg,var(--blue),var(--red));
     box-shadow:0 0 10px rgba(255,77,109,.45),0 0 12px rgba(90,211,255,.35);
-    transform:translateY(-1px)
+    transform-origin:center center;
   }
+  .cell.crossed::before{ transform:rotate(45deg); }
+  .cell.crossed::after { transform:rotate(-45deg); }
 
   .cell.bingo-row,.cell.bingo-col{
     outline:2px solid transparent;
@@ -101,7 +104,8 @@
     <h1>5×5 Grid Shuffler</h1>
     <div class="row">
       <label>Font Size <input type="range" id="fontSize" min="12" max="60"></label>
-      <label>Cell Size <input type="range" id="cellSize" min="80" max="200"></label>
+      <label>Cell Size <input type="range" id="cellSize" min="80" max="240"></label>
+      <label>Border <input type="range" id="borderSize" min="1" max="10"></label> <!-- NEW -->
       <label><input type="checkbox" id="boldToggle" checked> Bold</label>
     </div>
   </header>
@@ -171,7 +175,14 @@ function fillFromTextarea(){
     publishState();
   }catch(e){status.textContent=e.message}
 }
-function currentState(){return{items:items?.value||'',allow:allowRepeats?.checked,seed:seed?.value||'',texts:getTexts(),crossed:getCrossed(),settings:getSettings()}}
+function currentState(){return{
+  items:items?.value||'',
+  allow:allowRepeats?.checked,
+  seed:seed?.value||'',
+  texts:getTexts(),
+  crossed:getCrossed(),
+  settings:getSettings()
+}}
 function publishState(){
   const st=currentState();
   localStorage.setItem(STORAGE_KEY,JSON.stringify(st));
@@ -194,18 +205,26 @@ btnAgain?.addEventListener('click',()=>{if(!items.value.trim())return;fillFromTe
 btnClear?.addEventListener('click',()=>{items.value='';renderGrid(Array(25).fill(''));publishState()});
 btnClearCrosses?.addEventListener('click',()=>{$$('.cell.crossed').forEach(c=>c.classList.remove('crossed'));updateBingos();publishState()});
 
-function getSettings(){return{font:fontSize.value,cell:cellSize.value,bold:boldToggle.checked}}
+/* SETTINGS (now includes border thickness) */
+function getSettings(){return{
+  font:fontSize.value,
+  cell:cellSize.value,
+  bold:boldToggle.checked,
+  border:borderSize.value
+}}
 function applySettings(s){
   if(!s)return;
   document.documentElement.style.setProperty('--font-size',s.font+'px');
   document.documentElement.style.setProperty('--cell-size',s.cell+'px');
   document.documentElement.style.setProperty('--font-weight',s.bold?'800':'400');
-  fontSize.value=s.font;cellSize.value=s.cell;boldToggle.checked=s.bold;
+  document.documentElement.style.setProperty('--border',s.border+'px');    // NEW
+  fontSize.value=s.font;cellSize.value=s.cell;boldToggle.checked=s.bold;borderSize.value=s.border;
 }
-[fontSize,cellSize,boldToggle].forEach(el=>el.addEventListener('input',()=>{
+[fontSize,cellSize,boldToggle,borderSize].forEach(el=>el.addEventListener('input',()=>{
   document.documentElement.style.setProperty('--font-size',fontSize.value+'px');
   document.documentElement.style.setProperty('--cell-size',cellSize.value+'px');
   document.documentElement.style.setProperty('--font-weight',boldToggle.checked?'800':'400');
+  document.documentElement.style.setProperty('--border',borderSize.value+'px');  // NEW
   publishState();
 }));
 
