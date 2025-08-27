@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Soundboard</title>
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --card: #121a2b;
+    --text: #e6f1ff;
+    --muted: #9bb3d8;
+    --accent1: #ff003c;
+    --accent2: #00d4ff;
+    --ring: 0 0 0 2px rgba(0,212,255,.35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font: 16px/1.45 system-ui, Segoe UI, Roboto, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(1000px 600px at 10% -10%, rgba(255,0,60,.18), transparent 60%),
+      radial-gradient(1000px 600px at 110% 110%, rgba(0,212,255,.18), transparent 60%),
+      linear-gradient(180deg, #0b0f1a 0%, #05070d 100%);
+    min-height: 100vh; padding: 24px;
+  }
+  header { display: grid; gap: 12px; margin-bottom: 18px; }
+  h1 { margin: 0; font-size: 28px; letter-spacing: .5px; display:flex; align-items:center; gap:10px;}
+  .pill {
+    padding: 6px 10px; border-radius: 999px; background: rgba(0,212,255,.12); color: var(--muted); font-size: 12px;
+    border: 1px solid rgba(0,212,255,.2);
+  }
+  #search {
+    width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(155,179,216,.3);
+    background: #0c1322; color: var(--text); outline: none; box-shadow: var(--ring);
+  }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+  .card {
+    background: linear-gradient(135deg, rgba(0,212,255,.06), rgba(255,0,60,.06)) border-box, var(--card);
+    border: 1px solid transparent; border-radius: 16px; padding: 14px; position: relative;
+    box-shadow: 0 6px 28px rgba(0,0,0,.35);
+  }
+  .card h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
+  .id { font-weight: 700; color: var(--accent2); margin-right: 8px; }
+  .name { color: var(--muted); }
+  .btns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  button, .linkbtn {
+    border: 1px solid rgba(155,179,216,.25); background:#0c1322; color: var(--text); padding: 8px 10px;
+    border-radius: 10px; cursor: pointer; transition: transform .04s ease, border-color .2s ease;
+    text-decoration:none; display:inline-flex; align-items:center; gap:6px;
+  }
+  button:hover, .linkbtn:hover { transform: translateY(-1px); border-color: rgba(0,212,255,.45); }
+  .red { border-color: rgba(255,0,60,.45); }
+  mark { background: rgba(0,212,255,.2); color: var(--text); border-radius: 4px; padding: 0 2px; }
+  footer { margin-top: 24px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🔊 Soundboard <span class="pill">!play &lt;id&gt; · !play help</span></h1>
+  <input id="search" type="search" placeholder="Search by title or ID…" />
+</header>
+
+<div id="grid"></div>
+
+<footer>
+  Tip: Viewers can preview tracks on Epidemic Sound via the search link. Sounds still play locally on stream via StreamerBot.
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@streamerbot/client/dist/browser/streamerbot-client.umd.min.js"></script>
+<script>
+(async () => {
+  // Base Epidemic search URL
+  const EPIDEMIC_SEARCH_BASE = 'https://www.epidemicsound.com/playlist/2ohxz553smd5itran7916lxtiy2jn3gd/';
+
+  // Connect to StreamerBot WS
+  const client = window.client || new window.StreamerbotClient({
+    host: location.hostname,
+    port: 8080,
+    subscribe: '*',
+  });
+
+  // Replace with your action ID from StreamerBot
+  const ACTION_ID_CORE = "{73c624dd-8fae-4bd9-a225-5dbcf9538acd}";
+
+  const grid = document.getElementById('grid');
+  const search = document.getElementById('search');
+  let items = [];
+  let lastFilter = '';
+
+  function escapeHtml(s) { return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  function highlight(text, q) {
+    if (!q) return escapeHtml(text);
+    const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+    return escapeHtml(text).replace(re, '<mark>$1</mark>');
+  }
+
+  function render(filter='') {
+    lastFilter = filter.trim();
+    grid.innerHTML = '';
+    const q = lastFilter.toLowerCase();
+
+    for (const s of items) {
+      const matches = !q || String(s.id).includes(q) || s.name.toLowerCase().includes(q);
+      if (!matches) continue;
+
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const h = document.createElement('h3');
+      const nameHtml = highlight(s.name, q);
+      const idHtml = highlight(String(s.id), q);
+      h.innerHTML = `<span class="id">#${idHtml}</span><span class="name">${nameHtml}</span>`;
+      card.appendChild(h);
+
+      const btns = document.createElement('div');
+      btns.className = 'btns';
+
+      const btnCopy = document.createElement('button');
+      btnCopy.textContent = 'Copy !play';
+      btnCopy.onclick = () => {
+        navigator.clipboard.writeText('!play ' + s.id);
+        btnCopy.textContent = 'Copied!';
+        setTimeout(()=>btnCopy.textContent='Copy !play', 1200);
+      };
+      btns.appendChild(btnCopy);
+
+      const btnStream = document.createElement('button');
+      btnStream.className = 'red';
+      btnStream.textContent = 'Play on Stream';
+      btnStream.onclick = async () => {
+        try {
+          await client.doAction(ACTION_ID_CORE, { args: { mode: 'playById', id: String(s.id) } });
+        } catch (e) {
+          alert('Could not reach StreamerBot WebSocket.');
+        }
+      };
+      btns.appendChild(btnStream);
+
+      // Epidemic preview link
+      const a = document.createElement('a');
+      a.className = 'linkbtn';
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.href = EPIDEMIC_SEARCH_BASE + encodeURIComponent(s.name);
+      a.textContent = 'Preview on Epidemic';
+      btns.appendChild(a);
+
+      card.appendChild(btns);
+      grid.appendChild(card);
+    }
+  }
+
+  search.addEventListener('input', e => render(e.target.value));
+
+  client.on('General.Custom', (msg) => {
+    const data = msg?.data || msg;
+    if (data && data.type === 'soundboard_list') {
+      items = Array.isArray(data.items) ? data.items.map(x => ({ id: x.id, name: x.name })) : [];
+      render(lastFilter);
+    }
+  });
+
+  try {
+    await client.doAction(ACTION_ID_CORE, { args: { mode: 'list' } });
+  } catch (e) {
+    console.warn('WS not reachable yet; waiting for events...');
+  }
+})();
+</script>
+</body>
+</html>
