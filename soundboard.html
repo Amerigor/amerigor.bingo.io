@@ -100,14 +100,15 @@
   const escapeHtml = s => (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const highlight  = (text,q) => {
     if(!q) return escapeHtml(text);
-    const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&') + ')','ig');
+    const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')','ig');
     return escapeHtml(text).replace(re,'<mark>$1</mark>');
   };
 
   // Fetch JSON
   let data = [];
   try {
-    const res = await fetch(JSON_URL, { cache: 'no-store' });
+    const res = await fetch(JSON_URL + '?v=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
     data = await res.json();
     if(!Array.isArray(data)) throw new Error('sounds.json must be an array of {id,name}');
   } catch (e) {
@@ -155,4 +156,18 @@
     const btn = e.target.closest('button[data-copy]');
     if (!btn) return;
     navigator.clipboard.writeText(btn.getAttribute('data-copy')||'')
-      .then(() => { const t=btn.textContent; btn
+      .then(() => { const t=btn.textContent; btn.textContent='Copied!'; setTimeout(()=>btn.textContent=t,1100); })
+      .catch(() => { alert('Copy failed'); });
+  });
+
+  // Keyboard: “/” focuses search, “Esc” clears
+  document.addEventListener('keydown', (e)=>{
+    if (e.key === '/' && document.activeElement !== $q) { e.preventDefault(); $q.focus(); }
+    if (e.key === 'Escape' && document.activeElement === $q) { $q.value=''; render(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
