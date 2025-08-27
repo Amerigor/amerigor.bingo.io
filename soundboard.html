@@ -64,24 +64,66 @@
 <div id="grid"></div>
 
 <footer>
-  Tip: Viewers can preview tracks on Epidemic Sound via the search link. Sounds still play locally on stream via StreamerBot.
+  Tip: Preview opens on Epidemic Sound. Playback on stream stays local via StreamerBot.
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/@streamerbot/client/dist/browser/streamerbot-client.umd.min.js"></script>
+<!-- Attempt primary CDN -->
+<script id="sb-client-cdn" src="https://cdn.jsdelivr.net/npm/@streamerbot/client/dist/browser/streamerbot-client.umd.min.js" defer></script>
+<!-- Fallback loader -->
+<script>
+(function ensureClientScript(){
+  const primary = document.getElementById('sb-client-cdn');
+  primary.addEventListener('error', () => {
+    const alt = document.createElement('script');
+    alt.src = 'https://unpkg.com/@streamerbot/client/dist/browser/streamerbot-client.umd.min.js';
+    alt.defer = true;
+    document.head.appendChild(alt);
+  });
+})();
+</script>
+
 <script>
 (async () => {
-  // Base Epidemic search URL
-  const EPIDEMIC_SEARCH_BASE = 'https://www.epidemicsound.com/playlist/2ohxz553smd5itran7916lxtiy2jn3gd/';
-
-  // Connect to StreamerBot WS
-  const client = window.client || new window.StreamerbotClient({
-    host: location.hostname,
-    port: 8080,
-    subscribe: '*',
+  // Wait for DOM + (potential) script to be ready
+  await new Promise(r => {
+    if (document.readyState === 'complete' || document.readyState === 'interactive') r();
+    else document.addEventListener('DOMContentLoaded', r, { once: true });
   });
+  // Give the CDN script a moment to attach its globals if needed
+  await new Promise(r => setTimeout(r, 50));
 
-  // Replace with your action ID from StreamerBot
-  const ACTION_ID_CORE = "{73c624dd-8fae-4bd9-a225-5dbcf9538acd}";
+  // 1) Use StreamerBot Overlay’s injected client if present
+  let client = window.client;
+
+  // 2) Otherwise, resolve the constructor from whatever global the UMD created
+  if (!client) {
+    const SBGlobalCtor =
+      (window.StreamerbotClient && window.StreamerbotClient.StreamerbotClient) || // some UMDs expose this
+      (window.StreamerbotClient) ||                                               // some expose ctor directly
+      (window.Streamerbot && window.Streamerbot.Client);                          // alternate namespace
+
+    if (!SBGlobalCtor) {
+      console.error('Streamerbot client library not found. Check CDN/network or run inside the StreamerBot HTML Overlay.');
+      alert('Could not load StreamerBot client library. If you are using the HTML Overlay, you can remove the CDN script tag.');
+      return;
+    }
+
+    try {
+      client = new SBGlobalCtor({
+        host: location.hostname,
+        port: 8080,
+        subscribe: '*',
+      });
+    } catch (e) {
+      console.error('Failed to construct StreamerBot client:', e);
+      alert('Failed to connect to StreamerBot WebSocket. Is port 8080 open and the WS server enabled?');
+      return;
+    }
+  }
+
+  // Config
+  const EPIDEMIC_SEARCH_BASE = 'https://www.epidemicsound.com/playlist/2ohxz553smd5itran7916lxtiy2jn3gd/';
+  const ACTION_ID_CORE = "{73c624dd-8fae-4bd9-a225-5dbcf9538acd}"; // replace with your action ID
 
   const grid = document.getElementById('grid');
   const search = document.getElementById('search');
@@ -89,7 +131,6 @@
   let lastFilter = '';
 
   function escapeHtml(s) { return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
   function highlight(text, q) {
     if (!q) return escapeHtml(text);
     const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
@@ -131,9 +172,11 @@
       btnStream.textContent = 'Play on Stream';
       btnStream.onclick = async () => {
         try {
+          if (!client.doAction) throw new Error('doAction not available on client');
           await client.doAction(ACTION_ID_CORE, { args: { mode: 'playById', id: String(s.id) } });
         } catch (e) {
-          alert('Could not reach StreamerBot WebSocket.');
+          console.warn('Could not call doAction:', e);
+          alert('Could not reach StreamerBot WebSocket. Is it enabled (port 8080)?');
         }
       };
       btns.appendChild(btnStream);
@@ -154,7 +197,8 @@
 
   search.addEventListener('input', e => render(e.target.value));
 
-  client.on('General.Custom', (msg) => {
+  // Listen for the Custom event the C# action broadcasts
+  client.on && client.on('General.Custom', (msg) => {
     const data = msg?.data || msg;
     if (data && data.type === 'soundboard_list') {
       items = Array.isArray(data.items) ? data.items.map(x => ({ id: x.id, name: x.name })) : [];
@@ -162,10 +206,13 @@
     }
   });
 
+  // Ask the action to broadcast the list
   try {
+    if (!client.doAction) throw new Error('doAction not available on client');
     await client.doAction(ACTION_ID_CORE, { args: { mode: 'list' } });
   } catch (e) {
-    console.warn('WS not reachable yet; waiting for events...');
+    console.warn('Initial doAction(list) failed:', e);
+    // The overlay’s injected client may still connect and deliver events shortly after page load.
   }
 })();
 </script>
