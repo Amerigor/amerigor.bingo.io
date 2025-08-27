@@ -1,6 +1,7 @@
 @echo off
 setlocal
-cd "C:\Users\dario\Documents\amerigor.io"
-git add soundboard.html push-sounds.bat
-git commit -m "Add soundboard UI and push script"
+cd /d "C:\Users\dario\Documents\amerigor.io"
+git add sounds.json
+git commit -m "Update sounds list %DATE% %TIME%"
 git push
+endlocal
