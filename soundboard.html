@@ -3,191 +3,115 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Soundboard</title>
+<title>Soundboard (Standalone WS)</title>
 <style>
-  :root {
-    --bg: #0b0f1a;
-    --card: #121a2b;
-    --text: #e6f1ff;
-    --muted: #9bb3d8;
-    --accent1: #ff003c;
-    --accent2: #00d4ff;
-    --ring: 0 0 0 2px rgba(0,212,255,.35);
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; font: 16px/1.45 system-ui, Segoe UI, Roboto, sans-serif;
-    color: var(--text);
-    background:
-      radial-gradient(1000px 600px at 10% -10%, rgba(255,0,60,.18), transparent 60%),
-      radial-gradient(1000px 600px at 110% 110%, rgba(0,212,255,.18), transparent 60%),
-      linear-gradient(180deg, #0b0f1a 0%, #05070d 100%);
-    min-height: 100vh; padding: 24px;
-  }
-  header { display: grid; gap: 12px; margin-bottom: 18px; }
-  h1 { margin: 0; font-size: 28px; letter-spacing: .5px; display:flex; align-items:center; gap:10px;}
-  .pill {
-    padding: 6px 10px; border-radius: 999px; background: rgba(0,212,255,.12); color: var(--muted); font-size: 12px;
-    border: 1px solid rgba(0,212,255,.2);
-  }
-  #search {
-    width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(155,179,216,.3);
-    background: #0c1322; color: var(--text); outline: none; box-shadow: var(--ring);
-  }
-  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
-  .card {
-    background: linear-gradient(135deg, rgba(0,212,255,.06), rgba(255,0,60,.06)) border-box, var(--card);
-    border: 1px solid transparent; border-radius: 16px; padding: 14px; position: relative;
-    box-shadow: 0 6px 28px rgba(0,0,0,.35);
-  }
-  .card h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
-  .id { font-weight: 700; color: var(--accent2); margin-right: 8px; }
-  .name { color: var(--muted); }
-  .btns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-  button, .linkbtn {
-    border: 1px solid rgba(155,179,216,.25); background:#0c1322; color: var(--text); padding: 8px 10px;
-    border-radius: 10px; cursor: pointer; transition: transform .04s ease, border-color .2s ease;
-    text-decoration:none; display:inline-flex; align-items:center; gap:6px;
-  }
-  button:hover, .linkbtn:hover { transform: translateY(-1px); border-color: rgba(0,212,255,.45); }
-  .red { border-color: rgba(255,0,60,.45); }
-  mark { background: rgba(0,212,255,.2); color: var(--text); border-radius: 4px; padding: 0 2px; }
-  footer { margin-top: 24px; color: var(--muted); font-size: 13px; }
+  :root { --bg:#0b0f1a; --card:#121a2b; --text:#e6f1ff; --muted:#9bb3d8; --accent1:#ff003c; --accent2:#00d4ff; --ring:0 0 0 2px rgba(0,212,255,.35); }
+  *{box-sizing:border-box} body{margin:0;font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--text);
+    background:radial-gradient(1000px 600px at 10% -10%, rgba(255,0,60,.18), transparent 60%),
+               radial-gradient(1000px 600px at 110% 110%, rgba(0,212,255,.18), transparent 60%),
+               linear-gradient(180deg,#0b0f1a 0%,#05070d 100%);min-height:100vh;padding:24px;}
+  header{display:grid;gap:12px;margin-bottom:18px}
+  h1{margin:0;font-size:28px;display:flex;gap:10px;align-items:center}
+  .pill{padding:6px 10px;border-radius:999px;background:rgba(0,212,255,.12);color:var(--muted);font-size:12px;border:1px solid rgba(0,212,255,.2)}
+  #search{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(155,179,216,.3);background:#0c1322;color:var(--text);outline:none;box-shadow:var(--ring)}
+  #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+  .card{background:linear-gradient(135deg,rgba(0,212,255,.06),rgba(255,0,60,.06)) border-box,var(--card);border:1px solid transparent;border-radius:16px;padding:14px;box-shadow:0 6px 28px rgba(0,0,0,.35)}
+  .card h3{margin:0 0 6px;font-size:16px;font-weight:600}
+  .id{font-weight:700;color:var(--accent2);margin-right:8px}
+  .name{color:var(--muted)}
+  .btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  button,.linkbtn{border:1px solid rgba(155,179,216,.25);background:#0c1322;color:var(--text);padding:8px 10px;border-radius:10px;cursor:pointer;transition:transform .04s ease,border-color .2s ease;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+  button:hover,.linkbtn:hover{transform:translateY(-1px);border-color:rgba(0,212,255,.45)}
+  .red{border-color:rgba(255,0,60,.45)}
+  mark{background:rgba(0,212,255,.2);color:var(--text);border-radius:4px;padding:0 2px}
+  footer{margin-top:24px;color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
 <header>
   <h1>🔊 Soundboard <span class="pill">!play &lt;id&gt; · !play help</span></h1>
-  <input id="search" type="search" placeholder="Search by title or ID…" />
+  <input id="search" type="search" placeholder="Search by title or ID…"/>
 </header>
 
 <div id="grid"></div>
-
-<footer>
-  Tip: Preview opens on Epidemic Sound. Playback on stream stays local via StreamerBot.
-</footer>
-
-<!-- Attempt primary CDN -->
-<script id="sb-client-cdn" src="https://cdn.jsdelivr.net/npm/@streamerbot/client/dist/browser/streamerbot-client.umd.min.js" defer></script>
-<!-- Fallback loader -->
-<script>
-(function ensureClientScript(){
-  const primary = document.getElementById('sb-client-cdn');
-  primary.addEventListener('error', () => {
-    const alt = document.createElement('script');
-    alt.src = 'https://unpkg.com/@streamerbot/client/dist/browser/streamerbot-client.umd.min.js';
-    alt.defer = true;
-    document.head.appendChild(alt);
-  });
-})();
-</script>
+<footer>Preview opens on Epidemic Sound. Playback on stream is local via StreamerBot.</footer>
 
 <script>
-(async () => {
-  // Wait for DOM + (potential) script to be ready
-  await new Promise(r => {
-    if (document.readyState === 'complete' || document.readyState === 'interactive') r();
-    else document.addEventListener('DOMContentLoaded', r, { once: true });
-  });
-  // Give the CDN script a moment to attach its globals if needed
-  await new Promise(r => setTimeout(r, 50));
-
-  // 1) Use StreamerBot Overlay’s injected client if present
-  let client = window.client;
-
-  // 2) Otherwise, resolve the constructor from whatever global the UMD created
-  if (!client) {
-    const SBGlobalCtor =
-      (window.StreamerbotClient && window.StreamerbotClient.StreamerbotClient) || // some UMDs expose this
-      (window.StreamerbotClient) ||                                               // some expose ctor directly
-      (window.Streamerbot && window.Streamerbot.Client);                          // alternate namespace
-
-    if (!SBGlobalCtor) {
-      console.error('Streamerbot client library not found. Check CDN/network or run inside the StreamerBot HTML Overlay.');
-      alert('Could not load StreamerBot client library. If you are using the HTML Overlay, you can remove the CDN script tag.');
-      return;
-    }
-
-    try {
-      client = new SBGlobalCtor({
-        host: location.hostname,
-        port: 8080,
-        subscribe: '*',
-      });
-    } catch (e) {
-      console.error('Failed to construct StreamerBot client:', e);
-      alert('Failed to connect to StreamerBot WebSocket. Is port 8080 open and the WS server enabled?');
-      return;
-    }
-  }
-
-  // Config
-  const EPIDEMIC_SEARCH_BASE = 'https://www.epidemicsound.com/playlist/2ohxz553smd5itran7916lxtiy2jn3gd/';
+(() => {
+  // ==== CONFIG ====
+  const HOST = "127.0.0.1";   // or your PC IP, e.g. "192.168.1.50"
+  const PORT = 8080;                // StreamerBot WS port
+  const WS_URL = `ws://${HOST}:${PORT}/`; // change if your endpoint differs
   const ACTION_ID_CORE = "{73c624dd-8fae-4bd9-a225-5dbcf9538acd}"; // replace with your action ID
+  const EPIDEMIC_SEARCH_BASE = 'https://www.epidemicsound.com/playlist/2ohxz553smd5itran7916lxtiy2jn3gd/';
 
   const grid = document.getElementById('grid');
   const search = document.getElementById('search');
-  let items = [];
-  let lastFilter = '';
+  const escapeHtml = s => s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const highlight = (text,q) => !q ? escapeHtml(text) : escapeHtml(text).replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'),'<mark>$1</mark>');
 
-  function escapeHtml(s) { return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-  function highlight(text, q) {
-    if (!q) return escapeHtml(text);
-    const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
-    return escapeHtml(text).replace(re, '<mark>$1</mark>');
+  let ws, wsReady = false, items=[], lastFilter='';
+
+  function connect() {
+    ws = new WebSocket(WS_URL);
+    ws.addEventListener('open', () => {
+      wsReady = true;
+      // Subscribe to General.Custom
+      send({ request: "Subscribe", id: "sub1", events: { General: ["Custom"] } });
+      // Ask our action to broadcast the list
+      doAction(ACTION_ID_CORE, { mode: "list" });
+    });
+    ws.addEventListener('message', (ev) => {
+      try {
+        const msg = JSON.parse(ev.data);
+        // Expecting { event:"General", type:"Custom", data:{ type:"soundboard_list", items:[...] } }
+        if (msg && msg.event === "General" && msg.type === "Custom") {
+          const data = msg.data || {};
+          if (data.type === "soundboard_list") {
+            items = Array.isArray(data.items) ? data.items.map(x => ({id:x.id, name:x.name})) : [];
+            render(lastFilter);
+          }
+        }
+      } catch(e) { /* ignore */ }
+    });
+    ws.addEventListener('close', () => { wsReady = false; setTimeout(connect, 1200); });
+    ws.addEventListener('error',  () => { try{ ws.close(); }catch(_){ } });
+  }
+
+  function send(obj) {
+    if (!wsReady) return;
+    try { ws.send(JSON.stringify(obj)); } catch(e) {}
+  }
+
+  function doAction(actionId, args) {
+    // StreamerBot WS expects DoAction with either {action:{id}} or {action:{name}}
+    send({ request: "DoAction", id: "req-" + Date.now(), action: { id: actionId }, args: args || {} });
   }
 
   function render(filter='') {
-    lastFilter = filter.trim();
+    lastFilter = (filter||'').trim();
     grid.innerHTML = '';
     const q = lastFilter.toLowerCase();
-
     for (const s of items) {
-      const matches = !q || String(s.id).includes(q) || s.name.toLowerCase().includes(q);
-      if (!matches) continue;
+      if (q && !(String(s.id).includes(q) || s.name.toLowerCase().includes(q))) continue;
 
-      const card = document.createElement('div');
-      card.className = 'card';
-
-      const h = document.createElement('h3');
-      const nameHtml = highlight(s.name, q);
-      const idHtml = highlight(String(s.id), q);
-      h.innerHTML = `<span class="id">#${idHtml}</span><span class="name">${nameHtml}</span>`;
+      const card = document.createElement('div'); card.className='card';
+      const h=document.createElement('h3');
+      h.innerHTML = `<span class="id">#${highlight(String(s.id),q)}</span><span class="name">${highlight(s.name,q)}</span>`;
       card.appendChild(h);
 
-      const btns = document.createElement('div');
-      btns.className = 'btns';
+      const btns=document.createElement('div'); btns.className='btns';
 
-      const btnCopy = document.createElement('button');
-      btnCopy.textContent = 'Copy !play';
-      btnCopy.onclick = () => {
-        navigator.clipboard.writeText('!play ' + s.id);
-        btnCopy.textContent = 'Copied!';
-        setTimeout(()=>btnCopy.textContent='Copy !play', 1200);
-      };
+      const btnCopy=document.createElement('button'); btnCopy.textContent='Copy !play';
+      btnCopy.onclick=()=>{navigator.clipboard.writeText('!play '+s.id); btnCopy.textContent='Copied!'; setTimeout(()=>btnCopy.textContent='Copy !play',1200);};
       btns.appendChild(btnCopy);
 
-      const btnStream = document.createElement('button');
-      btnStream.className = 'red';
-      btnStream.textContent = 'Play on Stream';
-      btnStream.onclick = async () => {
-        try {
-          if (!client.doAction) throw new Error('doAction not available on client');
-          await client.doAction(ACTION_ID_CORE, { args: { mode: 'playById', id: String(s.id) } });
-        } catch (e) {
-          console.warn('Could not call doAction:', e);
-          alert('Could not reach StreamerBot WebSocket. Is it enabled (port 8080)?');
-        }
-      };
+      const btnStream=document.createElement('button'); btnStream.className='red'; btnStream.textContent='Play on Stream';
+      btnStream.onclick=()=>doAction(ACTION_ID_CORE, { mode:'playById', id:String(s.id) });
       btns.appendChild(btnStream);
 
-      // Epidemic preview link
-      const a = document.createElement('a');
-      a.className = 'linkbtn';
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      a.href = EPIDEMIC_SEARCH_BASE + encodeURIComponent(s.name);
-      a.textContent = 'Preview on Epidemic';
+      const a=document.createElement('a'); a.className='linkbtn'; a.target='_blank'; a.rel='noopener noreferrer';
+      a.href=EPIDEMIC_SEARCH_BASE+encodeURIComponent(s.name); a.textContent='Preview on Epidemic';
       btns.appendChild(a);
 
       card.appendChild(btns);
@@ -196,24 +120,7 @@
   }
 
   search.addEventListener('input', e => render(e.target.value));
-
-  // Listen for the Custom event the C# action broadcasts
-  client.on && client.on('General.Custom', (msg) => {
-    const data = msg?.data || msg;
-    if (data && data.type === 'soundboard_list') {
-      items = Array.isArray(data.items) ? data.items.map(x => ({ id: x.id, name: x.name })) : [];
-      render(lastFilter);
-    }
-  });
-
-  // Ask the action to broadcast the list
-  try {
-    if (!client.doAction) throw new Error('doAction not available on client');
-    await client.doAction(ACTION_ID_CORE, { args: { mode: 'list' } });
-  } catch (e) {
-    console.warn('Initial doAction(list) failed:', e);
-    // The overlay’s injected client may still connect and deliver events shortly after page load.
-  }
+  connect();
 })();
 </script>
 </body>
