@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Soundboard — Static</title>
+<meta name="color-scheme" content="dark">
+<style>
+  :root{
+    --bg:#0b0f1a; --bg2:#05070d; --card:#121a2b; --text:#e6f1ff; --muted:#9bb3d8;
+    --accent1:#ff003c; --accent2:#00d4ff; --ring:0 0 0 2px rgba(0,212,255,.35);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font:16px/1.5 ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(1000px 600px at 10% -10%, rgba(255,0,60,.18), transparent 60%),
+      radial-gradient(1000px 600px at 110% 110%, rgba(0,212,255,.18), transparent 60%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+    min-height:100vh;
+  }
+  .wrap{max-width:1100px;margin:auto;padding:22px}
+  header{display:grid;gap:12px;margin-bottom:18px}
+  h1{margin:0;font-size:28px;letter-spacing:.5px;display:flex;gap:10px;align-items:center}
+  .pill{padding:6px 10px;border-radius:999px;background:rgba(0,212,255,.12);color:var(--muted);font-size:12px;border:1px solid rgba(0,212,255,.2)}
+  .controls{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center}
+  input[type="search"], select{
+    padding:11px 12px; border-radius:12px; border:1px solid rgba(155,179,216,.3);
+    background:#0c1322; color:var(--text); outline:none; box-shadow:var(--ring); min-width:0;
+  }
+  .btn{
+    border:1px solid rgba(155,179,216,.25); background:#0c1322; color:var(--text);
+    padding:10px 12px; border-radius:10px; cursor:pointer; transition:transform .04s ease,border-color .2s ease;
+  }
+  .btn:hover{ transform:translateY(-1px); border-color:rgba(0,212,255,.45) }
+  .btn.red{ border-color:rgba(255,0,60,.45) }
+  #grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; margin-top:12px }
+  .card{
+    background:linear-gradient(135deg, rgba(0,212,255,.06), rgba(255,0,60,.06)) border-box, var(--card);
+    border:1px solid transparent; border-radius:16px; padding:14px; position:relative;
+    box-shadow:0 6px 28px rgba(0,0,0,.35);
+  }
+  .card h3{ margin:0 0 8px; font-size:16px; font-weight:700; display:flex; gap:8px; align-items:baseline }
+  .id{ color:var(--accent2) }
+  .name{ color:var(--muted); font-weight:600 }
+  .meta{ font-size:12px; color:var(--muted); opacity:.9 }
+  .row{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap }
+  .ghost{ opacity:.75 }
+  mark{ background:rgba(0,212,255,.2); color:var(--text); border-radius:4px; padding:0 2px }
+  footer{ margin:22px 0 4px; color:var(--muted); font-size:13px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap }
+  .hint{opacity:.9}
+  .counter{opacity:.85}
+  .sr{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🔊 Soundboard <span class="pill">!play &lt;id&gt; · static index</span></h1>
+    <div class="controls">
+      <input id="q" type="search" placeholder="Search by title or ID…" aria-label="Search sounds">
+      <select id="sort" aria-label="Sort">
+        <option value="id-asc">ID ↑</option>
+        <option value="id-desc">ID ↓</option>
+        <option value="name-asc">Title A–Z</option>
+        <option value="name-desc">Title Z–A</option>
+      </select>
+      <button id="clear" class="btn">Clear</button>
+    </div>
+  </header>
+
+  <div id="grid" aria-live="polite"></div>
+
+  <footer>
+    <div class="hint">🎧 Preview opens on <strong>Epidemic Sound</strong> (by title). Playback on stream uses your local files via StreamerBot.</div>
+    <div class="counter" id="count">0 sounds</div>
+  </footer>
+</div>
+
+<script>
+(async() => {
+  // If you keep your list elsewhere, change this path:
+  const JSON_URL = 'sounds.json';
+  const EPIDEMIC_SEARCH_BASE = 'https://www.epidemicsound.com/playlist/2ohxz553smd5itran7916lxtiy2jn3gd/';
+
+  const $q    = document.getElementById('q');
+  const $sort = document.getElementById('sort');
+  const $clr  = document.getElementById('clear');
+  const $grid = document.getElementById('grid');
+  const $cnt  = document.getElementById('count');
+
+  const escapeHtml = s => (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const highlight  = (text,q) => {
+    if(!q) return escapeHtml(text);
+    const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')','ig');
+    return escapeHtml(text).replace(re,'<mark>$1</mark>');
+  };
+
+  // Fetch JSON
+  let data = [];
+  try {
+    const res = await fetch(JSON_URL, { cache: 'no-store' });
+    data = await res.json();
+    if(!Array.isArray(data)) throw new Error('sounds.json must be an array of {id,name}');
+  } catch (e) {
+    $grid.innerHTML = `<p style="color:#ffb4b4">Failed to load <code>${escapeHtml(JSON_URL)}</code>: ${escapeHtml(String(e))}</p>`;
+    return;
+  }
+
+  // Normalize & sort by ID asc by default
+  data = data.map(x => ({ id: Number(x.id), name: String(x.name || '') }));
+  data.sort((a,b)=>a.id-b.id);
+
+  // Render
+  function render() {
+    const query = $q.value.trim().toLowerCase();
+    // filter
+    let list = query ? data.filter(s => String(s.id).includes(query) || s.name.toLowerCase().includes(query)) : data.slice();
+
+    // sort
+    const s = $sort.value;
+    if (s === 'id-asc')   list.sort((a,b)=>a.id-b.id);
+    if (s === 'id-desc')  list.sort((a,b)=>b.id-a.id);
+    if (s === 'name-asc') list.sort((a,b)=>a.name.localeCompare(b.name));
+    if (s === 'name-desc')list.sort((a,b)=>b.name.localeCompare(a.name));
+
+    // draw
+    $grid.innerHTML = '';
+    for (const it of list) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <h3>
+          <span class="id">#${highlight(String(it.id), query)}</span>
+          <span class="name">${highlight(it.name, query)}</span>
+        </h3>
+        <div class="meta ghost">Use in chat: <code>!play ${it.id}</code></div>
+        <div class="row">
+          <button class="btn" data-copy="!play ${it.id}" aria-label="Copy command for ${it.name}">Copy !play</button>
+          <a class="btn red" target="_blank" rel="noopener" href="${EPIDEMIC_SEARCH_BASE + encodeURIComponent(it.name)}" aria-label="Preview ${escapeHtml(it.name)} on Epidemic">Preview on Epidemic</a>
+        </div>`;
+      $grid.appendChild(card);
+    }
+    $cnt.textContent = `${list.length} sound${list.length===1?'':'s'}`;
+  }
+
+  // Events
+  $q.addEventListener('input', render);
+  $sort.addEventListener('change', render);
+  $clr.addEventListener('click', () => { $q.value=''; render(); });
+
+  // Delegated copy handler
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-copy]');
+    if (!btn) return;
+    navigator.clipboard.writeText(btn.getAttribute('data-copy')||'')
+      .then(() => { const t=btn.textContent; btn.textContent='Copied!'; setTimeout(()=>btn.textContent=t,1100); })
+      .catch(() => { alert('Copy failed'); });
+  });
+
+  // Keyboard: “/” focuses search, “Esc” clears
+  document.addEventListener('keydown', (e)=>{
+    if (e.key === '/' && document.activeElement !== $q) { e.preventDefault(); $q.focus(); }
+    if (e.key === 'Escape' && document.activeElement === $q) { $q.value=''; render(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
